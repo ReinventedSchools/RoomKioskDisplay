@@ -5,26 +5,42 @@ import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
-// ⚙️ Cambia por tu IP local (ya confirmada)
-const API_BASE = "http://192.168.1.76:5130/api/calendar";
 
+// 🌍 Detecta automáticamente la IP o dominio del backend
+let host = "localhost";
+if (typeof window !== "undefined") {
+    host = window.location.hostname;
+}
+
+// Si estás en Android y no te detecta la IP, puedes escribirla manualmente aquí:
+// host = "192.168.100.26";
+
+export const API_BASE = `http://${host}:5130/api`;
+console.log("🌐 API_BASE:", API_BASE);
+
+/**
+ * 📅 Obtener los eventos de una sala específica
+ */
 export async function getRoomEvents(tenant: string, roomEmail: string) {
     try {
-        const response = await axios.get<any[]>(`${API_BASE}/${tenant}/${roomEmail}`);
-        const data = response.data as any[];
+        const encodedEmail = encodeURIComponent(roomEmail);
+        const url = `${API_BASE}/calendar/${tenant}/${encodedEmail}`;
+        console.log("➡️ Solicitando:", url);
 
-        // 🧩 Normalizamos los datos para el front
+        const response = await axios.get<any[]>(url);
+        const data = response.data || [];
+
+        // 🧩 Normalizamos los datos para el frontend
         const formatted = data.map((ev: any) => {
-            // extraemos las fechas limpias y aseguramos que sean ISO strings válidas
             const startISO = ev.start?.dateTime
-                ? ev.start.dateTime.split(".")[0] // quitamos milisegundos
+                ? ev.start.dateTime.split(".")[0]
                 : ev.start;
             const endISO = ev.end?.dateTime
                 ? ev.end.dateTime.split(".")[0]
                 : ev.end;
 
             return {
-                id: ev.id || ev.subject || Math.random().toString(),
+                id: ev.id || Math.random().toString(),
                 title: ev.subject || ev.organizer?.emailAddress?.name || "Sin título",
                 start: startISO,
                 end: endISO,
@@ -36,23 +52,21 @@ export async function getRoomEvents(tenant: string, roomEmail: string) {
         // 🕓 Filtramos solo los eventos del día actual
         const today = dayjs().startOf("day");
         const tomorrow = today.add(1, "day");
-        const todayEvents = formatted.filter(
-            (e) => {
-                const start = dayjs(e.start);
-                const end = dayjs(e.end);
-                return (
-                    // El evento empieza o termina dentro del día actual
-                    (start.isSameOrAfter(today) && start.isBefore(tomorrow)) ||
-                    (end.isAfter(today) && end.isSameOrBefore(tomorrow))
-                );
-            }
-        );
+
+        const todayEvents = formatted.filter((e) => {
+            const start = dayjs(e.start);
+            const end = dayjs(e.end);
+            return (
+                (start.isSameOrAfter(today) && start.isBefore(tomorrow)) ||
+                (end.isAfter(today) && end.isSameOrBefore(tomorrow))
+            );
+        });
 
         console.log("📦 Eventos cargados (hoy):", todayEvents.length);
-        console.log(todayEvents);
-        console.log("🎯 Eventos totales:", formatted.length);
-        console.log("📅 Eventos visibles (hoy):", todayEvents.length);
-        formatted.forEach(ev => console.log("🕓", ev.title, ev.start, ev.end));
+        todayEvents.forEach((ev) =>
+            console.log("🕓", ev.title, ev.start, "-", ev.end)
+        );
+
         return todayEvents;
     } catch (error: any) {
         console.error("❌ Error al obtener eventos:", error.message);

@@ -21,6 +21,7 @@ import images from "@/config/images";
 import ClockDisplay from "@/components/ClockDisplay";
 import { getRoomEvents } from "@/api/calendarService";
 import TimelineItem from "@/components/TimelineItem";
+import { Pressable } from "react-native";
 
 type PickerMode = "start" | "end" | null;
 
@@ -35,7 +36,6 @@ export default function RoomScreen() {
     const [pickerMode, setPickerMode] = useState<PickerMode>(null);
     const [form, setForm] = useState({
         subject: "",
-        organizer: "",
         start: "",
         end: "",
     });
@@ -45,7 +45,7 @@ export default function RoomScreen() {
     const roomName = "Sala Creativity";
     const tenant = "TenantA";
     const roomEmail = "creativity@reinventedpuembo.edu.ec";
-    const API_BASE = "http://192.168.1.76:5130"; // 🔧 Cambia aquí tu backend si lo necesitas
+    const API_BASE = "http://192.168.1.66:5130"; // 🔧 Cambia aquí tu backend si lo necesitas
 
     // 🕒 Actualiza la hora cada minuto
     useEffect(() => {
@@ -140,22 +140,23 @@ export default function RoomScreen() {
         setForm((f) => ({ ...f, [key]: value }));
 
     // 🚀 Crear reserva
+
     const handleReserve = async () => {
-        if (!form.organizer || !form.start || !form.end) {
-            Alert.alert("Faltan datos", "Completa organizador, inicio y fin.");
+        console.log("🔥 handleReserve llamado");
+
+        if (!form.subject|| !form.start || !form.end) {
+            Alert.alert("Faltan datos", "Completa nombre, hora de inicio y  hora de finalización.");
             return;
         }
         try {
             const body = {
-                subject: form.subject || `Reserva de ${form.organizer}`,
-                organizer: form.organizer,
-                start: form.start,
-                end: form.end,
-                attendees: [roomEmail],
+                subject: form.subject || `Reserva de ${form.subject}`,
+                start: dayjs(form.start).format("YYYY-MM-DDTHH:mm:ss"),
+                end: dayjs(form.end).format("YYYY-MM-DDTHH:mm:ss")
             };
             console.log("📤 Enviando datos de reserva:", body);
 
-            const resp = await fetch(`${API_BASE}/api/calendar/TenantA/Reserve`, {
+            const resp = await fetch(`${API_BASE}/api/calendar/TenantA/creativity@reinventedpuembo.edu.ec`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body),
@@ -163,13 +164,19 @@ export default function RoomScreen() {
 
             console.log("📡 Status:", resp.status);
             if (!resp.ok) throw new Error(await resp.text());
+            let result = null;
+            try {
+                const text = await resp.text();
+                result = text ? JSON.parse(text) : null;
+            } catch {
+                result = null; // si no hay json no pasa nada
+            }
 
-            const result = await resp.json();
             console.log("📨 Respuesta del servidor:", result);
 
             Alert.alert("Éxito", "Reserva creada correctamente ✅");
             setShowModal(false);
-            setForm({ subject: "", organizer: "", start: "", end: "" });
+            setForm({ subject: "", start: "", end: "" });
             loadEvents();
         } catch (e: any) {
             console.error(e);
@@ -241,6 +248,8 @@ export default function RoomScreen() {
 
             {/* MODAL */}
             <Modal animationType="slide" transparent visible={showModal} onRequestClose={() => setShowModal(false)}>
+
+
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContainer}>
                         <Text style={styles.modalTitle}>Nueva Reserva</Text>
@@ -248,16 +257,7 @@ export default function RoomScreen() {
                         <Text style={styles.label}>Organizador</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="Tu nombre"
-                            placeholderTextColor="#888"
-                            value={form.organizer}
-                            onChangeText={(t) => setField("organizer", t)}
-                        />
-
-                        <Text style={styles.label}>Título / Asunto</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Motivo de la reserva"
+                            placeholder="Ingresa tu nombre"
                             placeholderTextColor="#888"
                             value={form.subject}
                             onChangeText={(t) => setField("subject", t)}
@@ -332,7 +332,10 @@ export default function RoomScreen() {
                                 <Text style={styles.buttonText}>Cancelar</Text>
                             </TouchableOpacity>
 
-                            <TouchableOpacity style={[styles.button, { backgroundColor: colors.accent }]} onPress={handleReserve}>
+                            <TouchableOpacity style={[styles.button, { backgroundColor: colors.accent }]} onPress={() => {
+                                console.log("🔥 CLICK EN BOTÓN");
+                                handleReserve();
+                            }}>
                                 <Text style={styles.buttonText}>Reservar</Text>
                             </TouchableOpacity>
                         </View>

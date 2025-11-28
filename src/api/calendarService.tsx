@@ -6,16 +6,8 @@ import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
 
-// 🌍 Detecta automáticamente la IP o dominio del backend
-let host = "localhost";
-if (typeof window !== "undefined") {
-    host = window.location.hostname;
-}
 
-// Si estás en Android y no te detecta la IP, puedes escribirla manualmente aquí:
-// host = "192.168.100.26";
-
-export const API_BASE = `http://${host}:5130/api`;
+export const API_BASE = `http://109.123.245.32:5130/api`;
 console.log("🌐 API_BASE:", API_BASE);
 
 /**

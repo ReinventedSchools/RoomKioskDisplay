@@ -6,15 +6,12 @@ import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
 
+let API_BASE = "http://109.123.245.32:5130/api";
+if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+    API_BASE = "http://localhost:5130/api";
+}
 
-// 🚀 FORZAR la IP del servidor en producción
-export const API_BASE =
-    window.location.hostname === "localhost"
-        ? "http://localhost:5130/api"
-        : "http://109.123.245.32:8080";
-
-console.log("🌐 API_BASE:", API_BASE);
-
+export { API_BASE };
 
 /**
  * 📅 Obtener los eventos de una sala específica

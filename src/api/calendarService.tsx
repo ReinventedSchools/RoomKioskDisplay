@@ -11,7 +11,7 @@ dayjs.extend(isSameOrBefore);
 export const API_BASE =
     window.location.hostname === "localhost"
         ? "http://localhost:5130/api"
-        : "http://109.123.245.32:8080/api";
+        : "http://109.123.245.32:8080";
 
 console.log("🌐 API_BASE:", API_BASE);
 

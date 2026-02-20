@@ -3,22 +3,17 @@
   "compilerOptions": {
     "strict": true,
     "jsx": "react-jsx",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "baseUrl": ".",
     "paths": {
-      "@src/*": [ "src/*" ],
-      "@assets/*": [ "assets/*" ],
-      "@components/*": [ "src/components/*" ],
-      "@config/*": [ "src/config/*" ]
+      "@src/*": ["src/*"],
+      "@assets/*": ["assets/*"],
+      "@components/*": ["src/components/*"],
+      "@config/*": ["src/config/*"]
     },
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts"
-  ]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "app/**/*.ts", "app/**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
+  "exclude": ["components", "hooks", "constants"]
 }
-  

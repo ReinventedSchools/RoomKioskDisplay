@@ -1,35 +1,29 @@
 import colors from "@config/colors";
 import fonts from "@config/fonts";
 import { getRoomEvents } from "@src/api/calendarService";
+import DayPanel from "@src/components/DayPanel";
+import MonthCalendar from "@src/components/MonthCalendar";
 import ReservationModal from "@src/components/ReservationModal";
-import RoomFab from "@src/components/RoomFab";
-import RoomHeader from "@src/components/RoomHeader";
 import RoomLayout from "@src/components/RoomLayout";
-import Timeline from "@src/components/Timeline";
+import { getApiUrl } from "@src/config/api";
 import { roomsConfig } from "@src/config/roomsConfig";
 import dayjs from "dayjs";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
-    FlatList,
     StyleSheet,
     Text,
-    useWindowDimensions,
     View,
 } from "react-native";
 
 type PickerMode = "start" | "end" | null;
 
-import { getApiUrl } from "@src/config/api";
-
 const API_BASE = getApiUrl();
 
 export default function RoomScreen() {
   const router = useRouter();
-  const { width, height } = useWindowDimensions();
-  const isPortrait = height > width;
   const [events, setEvents] = useState<any[]>([]);
   const [currentEvent, setCurrentEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -44,7 +38,6 @@ export default function RoomScreen() {
     end: "",
   });
 
-  const flatListRef = useRef<FlatList>(null);
   const { id } = useLocalSearchParams(); // id que viene desde la URL
   const room = roomsConfig[id as keyof typeof roomsConfig]; // datos según la sala seleccionada
 
@@ -112,52 +105,6 @@ export default function RoomScreen() {
     setCurrentEvent(active || null);
   }, [now, events]);
 
-  // 🕓 Genera las horas del día (07:00–18:00)
-  const hours = Array.from({ length: 12 }, (_, i) => 7 + i);
-
-  // 🧩 Crea los bloques del timeline con múltiples eventos
-  const timelineData = hours.map((h) => {
-    const hourLabel = `${String(h).padStart(2, "0")}:00`;
-
-    const hourEvents = events.filter((e) => {
-      const start = dayjs(e.start);
-      const end = dayjs(e.end);
-      return (
-        (start.hour() <= h && end.hour() > h) ||
-        (start.hour() === h && start.minute() < 59)
-      );
-    });
-
-    const isActive = hourEvents.some(
-      (ev) => now.isAfter(dayjs(ev.start)) && now.isBefore(dayjs(ev.end)),
-    );
-
-    return {
-      hour: hourLabel,
-      events: hourEvents.map((ev) => ({
-        title: ev.title,
-        organizer: ev.organizer,
-        start: dayjs(ev.start).format("HH:mm"),
-        end: dayjs(ev.end).format("HH:mm"),
-      })),
-      isActive,
-    };
-  });
-
-  // 🎯 Scroll automático al bloque horario actual (centrado)
-  useEffect(() => {
-    const currentHour = now.hour();
-    const indexToScroll = hours.findIndex((h) => h === currentHour);
-    if (indexToScroll >= 0 && flatListRef.current) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToIndex({
-          index: indexToScroll,
-          animated: true,
-          viewPosition: 0.5,
-        });
-      }, 400);
-    }
-  }, [timelineData]);
 
   // 📝 Manejo del formulario
   const setField = (key: keyof typeof form, value: string) =>
@@ -303,29 +250,16 @@ export default function RoomScreen() {
 
   return (
     <RoomLayout background={roomBackground}>
-      {/* IZQUIERDA */}
-      <RoomHeader
+      <DayPanel
         roomName={roomName}
+        events={events}
         currentEvent={currentEvent}
         now={now}
         theme={theme}
         onLogoPress={() => router.replace("/")}
+        onCreateReservation={() => setShowModal(true)}
       />
-
-      {/* DERECHA */}
-      <View style={[styles.right, isPortrait && styles.rightPortrait]}>
-        <Timeline
-          timelineData={timelineData}
-          flatListRef={flatListRef}
-          now={now}
-          hours={hours}
-          theme={theme}
-          isCompact={true}
-        />
-      </View>
-
-      {/* FAB */}
-      <RoomFab onPress={() => setShowModal(true)} color={theme.secondary} />
+      <MonthCalendar events={events} now={now} theme={theme} />
 
       {/* MODAL */}
       <ReservationModal
@@ -363,16 +297,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: colors.background,
   },
-  right: {
-    flex: 0.85,
-    maxWidth: 420,
-    minWidth: 300,
-    paddingLeft: 10,
-    paddingRight: 12,
-    marginLeft: "auto",
-    alignSelf: "stretch",
-  },
-  rightPortrait: { flex: 1, minWidth: 0, maxWidth: "100%", paddingHorizontal: 12, paddingTop: 4 },
   roomName: {
     fontSize: fonts.title,
     color: colors.text,

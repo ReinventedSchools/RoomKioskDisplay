@@ -256,10 +256,14 @@ export default function RoomScreen() {
         currentEvent={currentEvent}
         now={now}
         theme={theme}
-        onLogoPress={() => router.replace("/")}
         onCreateReservation={() => setShowModal(true)}
       />
-      <MonthCalendar events={events} now={now} theme={theme} />
+      <MonthCalendar
+        events={events}
+        now={now}
+        theme={theme}
+        onLogoPress={() => router.replace("/")}
+      />
 
       {/* MODAL */}
       <ReservationModal

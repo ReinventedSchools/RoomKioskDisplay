@@ -3,6 +3,7 @@ import {
     View,
     Text,
     TouchableOpacity,
+    Image,
     StyleSheet,
     useWindowDimensions,
 } from "react-native";
@@ -17,14 +18,22 @@ const DAYS_HEADER = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"];
 interface Props {
     events: any[];
     now: dayjs.Dayjs;
-    theme: { primary: string; secondary: string; text: string };
+    theme: {
+        primary: string;
+        secondary: string;
+        text: string;
+        logo: any;
+        third?: string;
+    };
+    onLogoPress?: () => void;
 }
 
-export default function MonthCalendar({ events, now, theme }: Props) {
+export default function MonthCalendar({ events, now, theme, onLogoPress }: Props) {
     const { height, width } = useWindowDimensions();
     const isPortrait = height > width;
 
     const [viewDate, setViewDate] = useState(now);
+    const accentGreen = theme.third || "#40CCA1";
 
     const year = viewDate.year();
     const month = viewDate.month();
@@ -89,14 +98,24 @@ export default function MonthCalendar({ events, now, theme }: Props) {
                 isPortrait && styles.containerPortrait,
             ]}
         >
-            <View style={styles.yearRow}>
-                <TouchableOpacity onPress={prevYear} style={styles.navButton}>
-                    <Text style={styles.navText}>‹</Text>
+            <View style={styles.topRow}>
+                <TouchableOpacity
+                    onPress={onLogoPress}
+                    style={styles.logoContainer}
+                    disabled={!onLogoPress}
+                >
+                    <Image source={theme.logo} style={styles.logo} />
                 </TouchableOpacity>
-                <Text style={styles.yearText}>{year}</Text>
-                <TouchableOpacity onPress={nextYear} style={styles.navButton}>
-                    <Text style={styles.navText}>›</Text>
-                </TouchableOpacity>
+
+                <View style={styles.yearRow}>
+                    <TouchableOpacity onPress={prevYear} style={styles.navButton}>
+                        <Text style={styles.navText}>‹</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.yearText}>{year}</Text>
+                    <TouchableOpacity onPress={nextYear} style={styles.navButton}>
+                        <Text style={styles.navText}>›</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <View style={styles.monthsRow}>
@@ -110,7 +129,7 @@ export default function MonthCalendar({ events, now, theme }: Props) {
                             styles.monthChip,
                             styles.monthChipBorder,
                             i === month && styles.monthChipActive,
-                            i === month && { backgroundColor: "#40CCA1", borderColor: "transparent" },
+                            i === month && { backgroundColor: accentGreen, borderColor: "transparent" },
                         ]}
                     >
                         <Text
@@ -148,7 +167,7 @@ export default function MonthCalendar({ events, now, theme }: Props) {
                         <View
                             style={[
                                 styles.dayCell,
-                                isToday(cell) && { backgroundColor: "#40CCA1" },
+                                isToday(cell) && { backgroundColor: accentGreen },
                             ]}
                         >
                             <Text
@@ -164,7 +183,7 @@ export default function MonthCalendar({ events, now, theme }: Props) {
                                 <View
                                     style={[
                                         styles.eventDot,
-                                        { backgroundColor: "#40CCA1" },
+                                        { backgroundColor: accentGreen },
                                     ]}
                                 />
                             )}
@@ -189,12 +208,25 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 0,
         borderBottomLeftRadius: 0,
     },
+    topRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 8,
+    },
     yearRow: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "flex-end",
-        marginBottom: 12,
         gap: 10,
+    },
+    logoContainer: {
+        alignSelf: "flex-start",
+    },
+    logo: {
+        width: 180,
+        height: 72,
+        resizeMode: "contain",
     },
     navButton: {
         padding: 8,
@@ -205,7 +237,7 @@ const styles = StyleSheet.create({
         fontWeight: "300",
     },
     yearText: {
-        fontSize: 36,
+        fontSize: 54,
         color: "#111111",
         fontWeight: "bold",
     },

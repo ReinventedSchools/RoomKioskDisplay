@@ -6,7 +6,7 @@ export const roomsConfig = {
         tenant: "TenantA",
         campus: "Puembo",
         theme: {
-            logo: require("@assets/logos/Logo_Puembo_negro.png"),
+            logo: require("@assets/logos/Logo_Puembo_blanco.png"),
             primary: "#40CCA1",
             secondary: "#F7D159",
             text: "#FFFFFF",
@@ -20,7 +20,7 @@ export const roomsConfig = {
         tenant: "TenantA",
         campus: "Puembo",
         theme: {
-            logo: require("@assets/logos/Logo_Puembo_negro.png"),
+            logo: require("@assets/logos/Logo_Puembo_blanco.png"),
             primary: "#40CCA1",
             secondary: "#F7D159",
             text: "#FFFFFF",
@@ -34,7 +34,7 @@ export const roomsConfig = {
         tenant: "TenantB",
         campus: "Santa  Clara",
         theme: {
-            logo: require("@assets/logos/Santa_clara_negro.png"),
+            logo: require("@assets/logos/Santa_clara_blanco.png"),
             primary: "#FFD008",
             secondary: "#127EFF",
             third: "#93D50A",
@@ -50,7 +50,7 @@ export const roomsConfig = {
         tenant: "TenantB",
         campus: "Santa Clara",
         theme: {
-            logo: require("@assets/logos/Santa_clara_negro.png"),
+            logo: require("@assets/logos/Santa_clara_blanco.png"),
             primary: "#FFD008",
             secondary: "#127EFF",
             third: "#93D50A",

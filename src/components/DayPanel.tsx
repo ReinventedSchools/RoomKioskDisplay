@@ -4,7 +4,6 @@ import {
     Text,
     ScrollView,
     TouchableOpacity,
-    Image,
     StyleSheet,
     useWindowDimensions,
 } from "react-native";
@@ -19,8 +18,13 @@ interface Props {
     events: any[];
     currentEvent: any | null;
     now: dayjs.Dayjs;
-    theme: { primary: string; secondary: string; text: string; logo: any };
-    onLogoPress: () => void;
+    theme: {
+        primary: string;
+        secondary: string;
+        text: string;
+        logo: any;
+        third?: string;
+    };
     onCreateReservation: () => void;
 }
 
@@ -30,13 +34,13 @@ export default function DayPanel({
     currentEvent,
     now,
     theme,
-    onLogoPress,
     onCreateReservation,
 }: Props) {
     const { height, width } = useWindowDimensions();
     const isPortrait = height > width;
 
     const dayNum = now.format("D");
+    const monthName = now.format("MMMM").toUpperCase();
     const dayOfWeek = now.format("dddd").toUpperCase();
 
     const todayEvents = events
@@ -44,22 +48,47 @@ export default function DayPanel({
         .sort((a, b) => dayjs(a.start).valueOf() - dayjs(b.start).valueOf());
 
     const daySize = isPortrait ? 216 : Math.min(300, height * 0.48);
+    const panelTopPadding = isPortrait ? 48 : 64;
+    const dayNumberMarginBottom = isPortrait ? 20 : 30;
+    const daySectionPaddingBottom = isPortrait ? 24 : 44;
+    const accentGreen = theme.third || BRAND_GREEN;
 
     return (
-        <View style={[styles.container, isPortrait && styles.containerPortrait]}>
-            <TouchableOpacity onPress={onLogoPress} style={styles.logoContainer}>
-                <Image source={theme.logo} style={styles.logo} />
-            </TouchableOpacity>
-
+        <View
+            style={[
+                styles.container,
+                isPortrait && styles.containerPortrait,
+                { paddingTop: panelTopPadding, backgroundColor: accentGreen },
+            ]}
+        >
             <Text style={[styles.roomName, { color: "#FFFFFF" }]} numberOfLines={1}>
                 {roomName}
             </Text>
 
-            <View style={styles.daySection}>
-                <Text style={[styles.dayNumber, { fontSize: daySize, color: "#FFFFFF" }]}>
+            <View
+                style={[
+                    styles.daySection,
+                    {
+                        paddingTop: daySectionPaddingBottom,
+                        paddingBottom: daySectionPaddingBottom,
+                    },
+                ]}
+            >
+                <Text style={[styles.dayOfWeek, { color: "#FFFFFF" }]}>{dayOfWeek}</Text>
+                <Text
+                    style={[
+                        styles.dayNumber,
+                        {
+                            fontSize: daySize,
+                            lineHeight: Math.floor(daySize * 0.78),
+                            marginBottom: dayNumberMarginBottom,
+                            color: "#FFFFFF",
+                        },
+                    ]}
+                >
                     {dayNum}
                 </Text>
-                <Text style={[styles.dayOfWeek, { color: "#FFFFFF" }]}>{dayOfWeek}</Text>
+                <Text style={[styles.dayMonth, { color: "#FFFFFF" }]}>{monthName}</Text>
             </View>
 
             <View style={styles.eventsSection}>
@@ -76,13 +105,14 @@ export default function DayPanel({
                             const isActive =
                                 now.isAfter(dayjs(ev.start)) &&
                                 now.isBefore(dayjs(ev.end));
+                            const isPast = now.isAfter(dayjs(ev.end));
                             return (
                                 <View
                                     key={idx}
                                     style={[
                                         styles.eventItem,
                                         isActive && {
-                                            backgroundColor: "rgba(255,255,255,0.2)",
+                                            backgroundColor: "rgba(255,255,255,0.5)",
                                             borderRadius: 8,
                                         },
                                     ]}
@@ -90,7 +120,10 @@ export default function DayPanel({
                                     <Text
                                         style={[
                                             styles.eventTitle,
-                                            { color: "#FFFFFF" },
+                                            {
+                                                color: "#FFFFFF",
+                                                opacity: isPast ? 0.45 : isActive ? 0.65 : 1,
+                                            },
                                         ]}
                                         numberOfLines={2}
                                     >
@@ -99,7 +132,10 @@ export default function DayPanel({
                                     <Text
                                         style={[
                                             styles.eventTime,
-                                            { color: "#FFFFFF", opacity: 0.9 },
+                                            {
+                                                color: "#FFFFFF",
+                                                opacity: isPast ? 0.4 : isActive ? 0.6 : 0.9,
+                                            },
                                         ]}
                                     >
                                         {dayjs(ev.start).format("HH:mm")} -{" "}
@@ -124,7 +160,8 @@ export default function DayPanel({
                     Crear reserva
                 </Text>
                 <View style={[styles.plusButton, { backgroundColor: "#FFFFFF" }]}>
-                    <Text style={[styles.plusText, { color: BRAND_GREEN }]}>+</Text>
+                    <View style={[styles.plusHorizontal, { backgroundColor: accentGreen }]} />
+                    <View style={[styles.plusVertical, { backgroundColor: accentGreen }]} />
                 </View>
             </TouchableOpacity>
         </View>
@@ -137,9 +174,7 @@ const styles = StyleSheet.create({
         minWidth: 0,
         maxWidth: 520,
         paddingHorizontal: 20,
-        paddingTop: 16,
-        paddingBottom: 20,
-        backgroundColor: BRAND_GREEN,
+        paddingBottom: 30,
         borderTopRightRadius: 16,
         borderBottomRightRadius: 16,
     },
@@ -147,9 +182,6 @@ const styles = StyleSheet.create({
         maxWidth: "100%",
         borderTopRightRadius: 0,
         borderBottomRightRadius: 0,
-    },
-    logoContainer: {
-        marginBottom: 8,
     },
     roomName: {
         fontSize: 44,
@@ -159,16 +191,17 @@ const styles = StyleSheet.create({
         textAlign: "center",
         width: "100%",
     },
-    logo: {
-        width: 120,
-        height: 48,
-        resizeMode: "contain",
-    },
     daySection: {
-        marginBottom: 20,
-        marginTop: -6,
+        marginBottom: 10,
+        marginTop: 12,
         alignItems: "center",
         justifyContent: "center",
+    },
+    dayMonth: {
+        fontSize: 30,
+        fontWeight: "600",
+        textAlign: "center",
+        marginTop: 4,
     },
     dayNumber: {
         fontWeight: "bold",
@@ -179,7 +212,7 @@ const styles = StyleSheet.create({
     },
     dayOfWeek: {
         fontSize: 30,
-        marginTop: 4,
+        marginBottom: 4,
         fontWeight: "500",
         textAlign: "center",
     },
@@ -233,9 +266,16 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
     },
-    plusText: {
-        fontSize: 28,
-        fontWeight: "bold",
-        lineHeight: 30,
+    plusHorizontal: {
+        position: "absolute",
+        width: 18,
+        height: 3,
+        borderRadius: 2,
+    },
+    plusVertical: {
+        position: "absolute",
+        width: 3,
+        height: 18,
+        borderRadius: 2,
     },
 });

@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { FlatList } from "react-native";
+import { FlatList, useWindowDimensions } from "react-native";
 import TimelineItem from "@src/components/TimelineItem";
 
 interface Props {
@@ -13,6 +13,7 @@ interface Props {
         text: string;
         logo: any;
     };
+    isCompact?: boolean;
 }
 
 export default function Timeline({
@@ -20,10 +21,14 @@ export default function Timeline({
     flatListRef,
     now,
     hours,
-    theme
+    theme,
+    isCompact = false,
 }: Props) {
+    const { height } = useWindowDimensions();
+    // Distribuir las horas en todo el alto de la pantalla (sin espacios vacíos)
+    const itemHeight = Math.floor(height / timelineData.length);
 
-    // Scroll automático a la hora actual
+    // Scroll automtico a la hora actual
     useEffect(() => {
         const currentHour = now.hour();
         const indexToScroll = hours.findIndex((h) => h === currentHour);
@@ -50,12 +55,14 @@ export default function Timeline({
                     events={item.events}
                     isActive={item.isActive}
                     theme={theme}
+                    isCompact={isCompact}
+                    itemHeight={itemHeight}
                 />
             )}
             showsVerticalScrollIndicator={false}
             getItemLayout={(data, index) => ({
-                length: 80,
-                offset: 80 * index,
+                length: itemHeight,
+                offset: itemHeight * index,
                 index,
             })}
         />

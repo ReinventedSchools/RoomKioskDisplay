@@ -29,6 +29,8 @@ interface Props {
         text: string;
         modalButton?: string;
     };
+    validationMessage?: string;
+    validationIsError?: boolean;
 }
 
 export default function ReservationModal({
@@ -39,7 +41,9 @@ export default function ReservationModal({
     onClose,
     onChange,
     onSubmit,
-    theme
+    theme,
+    validationMessage = "",
+    validationIsError = false,
 }: Props) {
     return (
         <Modal
@@ -148,6 +152,17 @@ export default function ReservationModal({
                         </>
                     )}
 
+                    {validationMessage ? (
+                        <Text
+                            style={[
+                                styles.validationMessage,
+                                { color: validationIsError ? "#f44336" : "#4caf50" },
+                            ]}
+                        >
+                            {validationMessage}
+                        </Text>
+                    ) : null}
+
                     <View style={styles.buttonRow}>
                         <TouchableOpacity
                             style={[styles.button, { backgroundColor: "#444" }]}
@@ -157,8 +172,15 @@ export default function ReservationModal({
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            style={[styles.button, { backgroundColor: theme.modalButton || theme.primary }]}
+                            style={[
+                                styles.button,
+                                {
+                                    backgroundColor: validationIsError ? "#555" : (theme.modalButton || theme.primary),
+                                    opacity: validationIsError ? 0.6 : 1,
+                                },
+                            ]}
                             onPress={onSubmit}
+                            disabled={validationIsError}
                         >
                             <Text style={styles.buttonText}>Reservar</Text>
                         </TouchableOpacity>
@@ -193,6 +215,12 @@ const styles = StyleSheet.create({
         color: "#aaa",
         marginBottom: 5,
         marginTop: 10,
+    },
+    validationMessage: {
+        marginTop: 12,
+        marginBottom: 4,
+        fontSize: 13,
+        textAlign: "left",
     },
     input: {
         backgroundColor: "#333",

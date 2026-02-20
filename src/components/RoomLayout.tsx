@@ -1,5 +1,5 @@
 import React from "react";
-import { View, ImageBackground, StyleSheet } from "react-native";
+import { View, ImageBackground, StyleSheet, useWindowDimensions } from "react-native";
 
 interface Props {
     background: any;
@@ -7,13 +7,16 @@ interface Props {
 }
 
 export default function RoomLayout({ background, children }: Props) {
+    const { width, height } = useWindowDimensions();
+    const isPortrait = height > width;
+
     return (
         <ImageBackground
             source={background}
             style={styles.background}
             imageStyle={{ resizeMode: "cover" }}
         >
-            <View style={styles.overlay}>
+            <View style={[styles.overlay, isPortrait && styles.overlayPortrait]}>
                 {children}
             </View>
         </ImageBackground>
@@ -30,5 +33,8 @@ const styles = StyleSheet.create({
         flex: 1,
         flexDirection: "row",
         backgroundColor: "rgba(0,0,0,0.5)",
+    },
+    overlayPortrait: {
+        flexDirection: "column",
     },
 });

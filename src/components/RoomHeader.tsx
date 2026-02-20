@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, Image, TouchableOpacity, StyleSheet, useWindowDimensions } from "react-native";
 import dayjs from "dayjs";
 import ClockDisplay from "@components/ClockDisplay";
 import colors from "@src/config/colors";
@@ -28,34 +28,68 @@ export default function RoomHeader({
     theme,
     onLogoPress,
 }: Props) {
+    const { width, height } = useWindowDimensions();
+    const isPortrait = height > width;
+    // En landscape, la altura es limitada: escalar fuentes para evitar superposiciùn
+    const isCompactLandscape = !isPortrait && height < 500;
+
+    const     titleSize = isPortrait
+        ? fonts.title * 0.35
+        : isCompactLandscape
+          ? Math.min(fonts.title * 0.5, height * 0.15)
+          : Math.min(fonts.title, height * 0.12);
+    const subtitleSize = isPortrait
+        ? fonts.subtitle * 0.7
+        : isCompactLandscape
+          ? fonts.subtitle * 0.8
+          : fonts.subtitle;
+    const dateSize = isPortrait ? fonts.date * 0.8 : fonts.date;
+    const logoWidth = isPortrait ? 100 : isCompactLandscape ? 120 : 180;
+    const logoHeight = isPortrait ? 40 : isCompactLandscape ? 45 : 70;
+
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, isPortrait && styles.containerPortrait, !isPortrait && styles.containerLandscape]}>
 
             {/* LOGO */}
-            <TouchableOpacity onPress={onLogoPress} style={styles.logoContainer}>
-                <Image source={theme.logo} style={styles.logo} />
+            <TouchableOpacity
+                onPress={onLogoPress}
+                style={[
+                    styles.logoContainer,
+                    isPortrait && styles.logoContainerPortrait,
+                    isCompactLandscape && styles.logoContainerCompact,
+                ]}
+            >
+                <Image source={theme.logo} style={[styles.logo, { width: logoWidth, height: logoHeight }]} />
             </TouchableOpacity>
 
-            {/* INFORMACI”N */}
-            <View style={styles.info}>
-                <Text style={[styles.roomName, { color: theme.text}]}>{roomName}</Text>
+            {/* INFORMACIùN */}
+            <View style={[styles.info, isPortrait && styles.infoPortrait, !isPortrait && styles.infoLandscape]}>
+                <Text
+                    style={[styles.roomName, { color: theme.text, fontSize: titleSize }]}
+                    numberOfLines={2}
+                    adjustsFontSizeToFit
+                >
+                    {roomName}
+                </Text>
 
                 {currentEvent ? (
                     <>
-                        <Text style={[styles.host, { color: theme.third ||  theme.primary}]}>{currentEvent.title}</Text>
-                        <Text style={[styles.host, { color: theme.third || theme.primary }]}>
+                        <Text style={[styles.host, { color: theme.third || theme.primary, fontSize: subtitleSize }]}>{currentEvent.title}</Text>
+                        <Text style={[styles.host, { color: theme.third || theme.primary, fontSize: subtitleSize }]}>
                             {dayjs(currentEvent.start).format("HH:mm")} -{" "}
                             {dayjs(currentEvent.end).format("HH:mm")}
                         </Text>
                     </>
                 ) : (
-                    <Text style={styles.host}>Disponible</Text>
+                    <Text style={[styles.host, { fontSize: subtitleSize }]}>Disponible</Text>
                 )}
-                </View>
 
-                <View style={styles.bottomInfo}> 
-                <Text style={styles.date}>{dayjs().format("DD MMM")}</Text>
-                    <ClockDisplay />
+                <View style={[styles.bottomInfo, isPortrait && styles.bottomInfoPortrait, !isPortrait && styles.bottomInfoLandscape]}>
+                    <Text style={[styles.date, { fontSize: dateSize }, !isPortrait && styles.dateStacked]}>
+                        {dayjs().format("DD MMM")}
+                    </Text>
+                    <ClockDisplay stacked={!isPortrait} />
+                </View>
             </View>
         </View>
     );
@@ -63,9 +97,21 @@ export default function RoomHeader({
 
 const styles = StyleSheet.create({
     container: {
-        flex: 2,
-        justifyContent: "center",
+        flex: 1,
+        justifyContent: "space-between",
         paddingLeft: 20,
+        paddingRight: 12,
+        minWidth: 0,
+        maxWidth: 420,
+    },
+    containerLandscape: {
+        justifyContent: "flex-end",
+    },
+    containerPortrait: {
+        flex: 0,
+        minHeight: 140,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
     },
     logoContainer: {
         position: "absolute",
@@ -73,15 +119,32 @@ const styles = StyleSheet.create({
         left: 20,
         zIndex: 999,
     },
+    logoContainerPortrait: {
+        top: 8,
+        left: 12,
+    },
+    logoContainerCompact: {
+        top: 12,
+        left: 16,
+    },
     logo: {
-        width: 180,
-        height: 70,
         resizeMode: "contain",
     },
     info: {
-        marginTop: 50,
-        justifyContent: "space-between",
-        alignContent: "flex-start",
+        marginTop: 44,
+        justifyContent: "flex-start",
+        flex: 1,
+    },
+    infoLandscape: {
+        marginTop: 0,
+        flex: 0,
+        position: "absolute" as const,
+        bottom: 20,
+        left: 20,
+    },
+    infoPortrait: {
+        marginTop: 48,
+        marginBottom: 8,
     },
     roomName: {
         fontSize: fonts.title,
@@ -91,7 +154,7 @@ const styles = StyleSheet.create({
     host: {
         fontSize: fonts.subtitle,
         color: colors.text,
-        marginVertical: 5,
+        marginVertical: 4,
         fontFamily: fonts.family.light,
     },
     reserve: {
@@ -105,14 +168,22 @@ const styles = StyleSheet.create({
         color: colors.accent,
     },
     bottomInfo: {
-        position: "absolute",
-        bottom: 20,
-        left: 15,
+        flexDirection: "column",
+        alignItems: "flex-start",
+    },
+    bottomInfoLandscape: {
+        marginTop: 6,
+    },
+    bottomInfoPortrait: {
+        marginTop: 4,
+        flexDirection: "row",
+        alignItems: "center",
     },
     date: {
-        fontSize: fonts.text,
         color: colors.text,
         marginTop: 0,
-        paddingBottom: 120
+    },
+    dateStacked: {
+        marginBottom: 4,
     },
 });

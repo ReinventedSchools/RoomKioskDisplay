@@ -110,6 +110,23 @@ export default function RoomScreen() {
   const setField = (key: keyof typeof form, value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
 
+  const openReservationModal = (selectedDate?: dayjs.Dayjs) => {
+    const baseDate = (selectedDate || now).startOf("day");
+    const defaultStart = baseDate
+      .hour(now.hour())
+      .minute(now.minute())
+      .second(0)
+      .millisecond(0);
+    const defaultEnd = defaultStart.add(30, "minute");
+
+    setForm({
+      subject: "",
+      start: defaultStart.toISOString(),
+      end: defaultEnd.toISOString(),
+    });
+    setShowModal(true);
+  };
+
   // ✅ Verifica si el rango de horas se solapa con algún evento existente
   const hasTimeConflict = (
     newStart: string,
@@ -256,13 +273,15 @@ export default function RoomScreen() {
         currentEvent={currentEvent}
         now={now}
         theme={theme}
-        onCreateReservation={() => setShowModal(true)}
+        onCreateReservation={() => openReservationModal()}
       />
       <MonthCalendar
         events={events}
         now={now}
         theme={theme}
         onLogoPress={() => router.replace("/")}
+        onDayPress={(date) => openReservationModal(date)}
+        isRoomReservedNow={Boolean(currentEvent)}
       />
 
       {/* MODAL */}
@@ -275,6 +294,7 @@ export default function RoomScreen() {
         onChange={setField}
         onSubmit={handleReserve}
         theme={theme}
+        events={events}
         validationMessage={validation.message}
         validationIsError={validation.isError}
       />

@@ -13,7 +13,7 @@ const MONTHS_ES = [
     "Ene", "Feb", "Mar", "Abr", "May", "Jun",
     "Jul", "Ago", "Sep", "Oct", "Nov", "Dic",
 ];
-const DAYS_HEADER = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"];
+const DAYS_HEADER = ["LUN", "MAR", "MIÉ", "JUE", "VIE"];
 
 interface Props {
     events: any[];
@@ -26,21 +26,28 @@ interface Props {
         third?: string;
     };
     onLogoPress?: () => void;
+    onDayPress?: (date: dayjs.Dayjs) => void;
+    isRoomReservedNow?: boolean;
 }
 
-export default function MonthCalendar({ events, now, theme, onLogoPress }: Props) {
+export default function MonthCalendar({
+    events,
+    now,
+    theme,
+    onLogoPress,
+    onDayPress,
+    isRoomReservedNow = false,
+}: Props) {
     const { height, width } = useWindowDimensions();
     const isPortrait = height > width;
 
     const [viewDate, setViewDate] = useState(now);
-    const accentGreen = theme.third || "#40CCA1";
+    const accentGreen = isRoomReservedNow ? "#F7D159" : (theme.third || "#40CCA1");
 
     const year = viewDate.year();
     const month = viewDate.month();
     const monthStart = viewDate.startOf("month");
     const monthEnd = viewDate.endOf("month");
-    const startDay = monthStart.day();
-    const daysInMonth = monthEnd.date();
 
     const prevYear = () => setViewDate((d) => d.subtract(1, "year"));
     const nextYear = () => setViewDate((d) => d.add(1, "year"));
@@ -49,47 +56,25 @@ export default function MonthCalendar({ events, now, theme, onLogoPress }: Props
         events.map((e) => dayjs(e.start).format("YYYY-MM-DD"))
     );
 
-    const firstDayOffset = startDay;
-    const prevMonthDays = monthStart.subtract(1, "month").daysInMonth();
-    const totalCells = Math.ceil((firstDayOffset + daysInMonth) / 7) * 7;
+    const mondayOffset = (monthStart.day() + 6) % 7;
+    const calendarStart = monthStart.subtract(mondayOffset, "day");
+    const fridayOffset = (5 - monthEnd.day() + 7) % 7;
+    const calendarEnd = monthEnd.add(fridayOffset, "day");
 
-    type DayCell = { day: number; isCurrentMonth: boolean };
-    const grid: DayCell[] = [];
-
-    for (let i = 0; i < firstDayOffset; i++) {
-        grid.push({
-            day: prevMonthDays - firstDayOffset + i + 1,
-            isCurrentMonth: false,
-        });
-    }
-    for (let d = 1; d <= daysInMonth; d++) {
-        grid.push({ day: d, isCurrentMonth: true });
-    }
-    let nextD = 1;
-    while (grid.length < totalCells) {
-        grid.push({ day: nextD++, isCurrentMonth: false });
-    }
-
-    const isToday = (cell: DayCell) =>
-        cell.isCurrentMonth &&
-        now.year() === year &&
-        now.month() === month &&
-        now.date() === cell.day;
-
-    const getEventDateKey = (cell: DayCell, idx: number) => {
-        if (cell.isCurrentMonth) {
-            return `${year}-${String(month + 1).padStart(2, "0")}-${String(cell.day).padStart(2, "0")}`;
+    const gridDates: dayjs.Dayjs[] = [];
+    let cursor = calendarStart;
+    while (cursor.isBefore(calendarEnd, "day") || cursor.isSame(calendarEnd, "day")) {
+        if (cursor.day() !== 0 && cursor.day() !== 6) {
+            gridDates.push(cursor);
         }
-        if (idx < firstDayOffset) {
-            const prev = monthStart.subtract(1, "month");
-            return `${prev.year()}-${String(prev.month() + 1).padStart(2, "0")}-${String(cell.day).padStart(2, "0")}`;
-        }
-        const next = monthStart.add(1, "month");
-        return `${next.year()}-${String(next.month() + 1).padStart(2, "0")}-${String(cell.day).padStart(2, "0")}`;
-    };
+        cursor = cursor.add(1, "day");
+    }
 
-    const hasEvents = (cell: DayCell, idx: number) =>
-        daysWithEvents.has(getEventDateKey(cell, idx));
+    const weeksCount = Math.max(1, Math.ceil(gridDates.length / 5));
+
+    const isToday = (date: dayjs.Dayjs) => date.isSame(now, "day");
+    const hasEvents = (date: dayjs.Dayjs) =>
+        daysWithEvents.has(date.format("YYYY-MM-DD"));
 
     return (
         <View
@@ -159,27 +144,29 @@ export default function MonthCalendar({ events, now, theme, onLogoPress }: Props
             </View>
 
             <View style={styles.grid}>
-                {grid.map((cell, i) => (
+                {gridDates.map((date) => (
                     <View
-                        key={i}
-                        style={styles.cell}
+                        key={date.format("YYYY-MM-DD")}
+                        style={[styles.cell, { height: `${100 / weeksCount}%` }]}
                     >
-                        <View
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => onDayPress?.(date)}
                             style={[
                                 styles.dayCell,
-                                isToday(cell) && { backgroundColor: accentGreen },
+                                isToday(date) && { backgroundColor: accentGreen },
                             ]}
                         >
                             <Text
                                 style={[
                                     styles.dayNum,
-                                    isToday(cell) && styles.dayNumToday,
-                                    !cell.isCurrentMonth && { opacity: 0.4 },
+                                    isToday(date) && styles.dayNumToday,
+                                    date.month() !== month && { opacity: 0.4 },
                                 ]}
                             >
-                                {cell.day}
+                                {date.date()}
                             </Text>
-                            {hasEvents(cell, i) && !isToday(cell) && (
+                            {hasEvents(date) && !isToday(date) && (
                                 <View
                                     style={[
                                         styles.eventDot,
@@ -187,7 +174,7 @@ export default function MonthCalendar({ events, now, theme, onLogoPress }: Props
                                     ]}
                                 />
                             )}
-                        </View>
+                        </TouchableOpacity>
                     </View>
                 ))}
             </View>
@@ -296,8 +283,7 @@ const styles = StyleSheet.create({
         alignContent: "stretch",
     },
     cell: {
-        width: "14.2857%",
-        height: "16.6667%",
+        width: "20%",
         alignItems: "center",
         justifyContent: "center",
         padding: 1,

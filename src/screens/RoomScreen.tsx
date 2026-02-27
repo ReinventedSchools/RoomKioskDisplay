@@ -7,9 +7,10 @@ import ReservationModal from "@src/components/ReservationModal";
 import RoomLayout from "@src/components/RoomLayout";
 import { getApiUrl } from "@src/config/api";
 import { roomsConfig } from "@src/config/roomsConfig";
+import { showSuccessToast, SuccessToastHost } from "@src/utils/successToast";
 import dayjs from "dayjs";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -19,15 +20,21 @@ import {
 } from "react-native";
 
 type PickerMode = "start" | "end" | null;
+const LOCAL_DATETIME_FORMAT = "YYYY-MM-DDTHH:mm:ss";
 
 const API_BASE = getApiUrl();
+let hasCompletedFirstScreenLoad = false;
 
 export default function RoomScreen() {
   const router = useRouter();
   const [events, setEvents] = useState<any[]>([]);
+  const [todayPanelEvents, setTodayPanelEvents] = useState<any[]>([]);
   const [currentEvent, setCurrentEvent] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!hasCompletedFirstScreenLoad);
+  const hasShownInitialLoaderRef = useRef(false);
   const [now, setNow] = useState(dayjs());
+  const [visibleMonth, setVisibleMonth] = useState(dayjs().startOf("month"));
+  const monthEventsCacheRef = useRef<Record<string, any[]>>({});
 
   // Modal + formulario
   const [showModal, setShowModal] = useState(false);
@@ -59,51 +66,152 @@ export default function RoomScreen() {
     return () => clearInterval(timer);
   }, []);
 
-  // 🔄 Cargar eventos desde el backend
-  const loadEvents = async (showLoader: boolean = false) => {
-    console.log("🔵 loadEvents llamado");
-    console.log("🔸 tenant:", tenant);
-    console.log("🔸 roomEmail:", roomEmail);
-    if (showLoader) setLoading(true);
+  const monthKey = (date: dayjs.Dayjs) => date.startOf("month").format("YYYY-MM");
 
-    try {
-      console.log(
-        "📡 Llamando a GET:",
-        `${API_BASE}/api/calendar/${tenant}/${roomEmail}`,
-      );
-      const data = await getRoomEvents(tenant, roomEmail);
-      console.log("📦 Eventos cargados:", data);
-      setEvents(data);
-    } catch (error) {
-      console.error("❌ Error cargando eventos:", error);
-    } finally {
-      if (showLoader) setLoading(false);
-    }
-  };
+  const loadMonthEvents = useCallback(
+    async (
+      targetMonth: dayjs.Dayjs,
+      options?: {
+        showLoader?: boolean;
+        useCache?: boolean;
+        updateVisible?: boolean;
+        onLoaded?: (data: any[]) => void;
+      },
+    ) => {
+      const showLoader = Boolean(options?.showLoader);
+      const useCache = options?.useCache !== false;
+      const updateVisible = options?.updateVisible !== false;
+      const normalizedMonth = targetMonth.startOf("month");
+      const key = monthKey(normalizedMonth);
+
+      if (updateVisible) {
+        setVisibleMonth(normalizedMonth);
+      }
+
+      if (useCache && monthEventsCacheRef.current[key]) {
+        if (updateVisible) {
+          setEvents(monthEventsCacheRef.current[key]);
+        }
+        options?.onLoaded?.(monthEventsCacheRef.current[key]);
+        if (showLoader && !hasShownInitialLoaderRef.current && !hasCompletedFirstScreenLoad) {
+          setLoading(false);
+          hasShownInitialLoaderRef.current = true;
+          hasCompletedFirstScreenLoad = true;
+        }
+        return;
+      }
+
+      if (showLoader && !hasShownInitialLoaderRef.current && !hasCompletedFirstScreenLoad) {
+        setLoading(true);
+      }
+      try {
+        const monthStart = normalizedMonth.format("YYYY-MM-DD");
+        const monthEnd = normalizedMonth.endOf("month").format("YYYY-MM-DD");
+        const data = await getRoomEvents(tenant, roomEmail, monthStart, monthEnd);
+        monthEventsCacheRef.current[key] = data;
+        if (updateVisible) {
+          setEvents(data);
+        }
+        options?.onLoaded?.(data);
+      } catch (error) {
+        console.error("❌ Error cargando eventos:", error);
+      } finally {
+        if (showLoader && !hasShownInitialLoaderRef.current && !hasCompletedFirstScreenLoad) {
+          setLoading(false);
+          hasShownInitialLoaderRef.current = true;
+          hasCompletedFirstScreenLoad = true;
+        }
+      }
+    },
+    [roomEmail, tenant],
+  );
+
+  const preloadNeighborMonths = useCallback(
+    async (centerMonth: dayjs.Dayjs) => {
+      const previousMonth = centerMonth.startOf("month").subtract(1, "month");
+      const nextMonth = centerMonth.startOf("month").add(1, "month");
+      await Promise.all([
+        loadMonthEvents(previousMonth, {
+          showLoader: false,
+          useCache: true,
+          updateVisible: false,
+        }),
+        loadMonthEvents(nextMonth, {
+          showLoader: false,
+          useCache: true,
+          updateVisible: false,
+        }),
+      ]);
+    },
+    [loadMonthEvents],
+  );
+
+  const refreshVisibleMonth = useCallback(async () => {
+    await loadMonthEvents(visibleMonth, {
+      showLoader: false,
+      useCache: false,
+      updateVisible: true,
+    });
+  }, [loadMonthEvents, visibleMonth]);
+
+  const refreshTodayPanelMonth = useCallback(async () => {
+    const todayMonth = now.startOf("month");
+    await loadMonthEvents(todayMonth, {
+      showLoader: false,
+      useCache: false,
+      updateVisible: false,
+      onLoaded: setTodayPanelEvents,
+    });
+  }, [loadMonthEvents, now]);
 
   useEffect(() => {
     if (roomEmail && tenant) {
-      loadEvents(true);
+      monthEventsCacheRef.current = {};
+      const initialMonth = dayjs().startOf("month");
+      loadMonthEvents(initialMonth, {
+        showLoader: !hasCompletedFirstScreenLoad,
+        useCache: true,
+        updateVisible: true,
+      });
+      loadMonthEvents(initialMonth, {
+        showLoader: false,
+        useCache: true,
+        updateVisible: false,
+        onLoaded: setTodayPanelEvents,
+      });
+      preloadNeighborMonths(initialMonth);
     }
-  }, [roomEmail, tenant]);
+  }, [roomEmail, tenant, loadMonthEvents, preloadNeighborMonths]);
+
+  useEffect(() => {
+    if (!roomEmail || !tenant) return;
+    const todayMonth = now.startOf("month");
+    loadMonthEvents(todayMonth, {
+      showLoader: false,
+      useCache: true,
+      updateVisible: false,
+      onLoaded: setTodayPanelEvents,
+    });
+  }, [roomEmail, tenant, now, loadMonthEvents]);
 
   useEffect(() => {
     if (!roomEmail || !tenant) return;
 
     const interval = setInterval(() => {
-      loadEvents(false);
+      refreshVisibleMonth();
+      refreshTodayPanelMonth();
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [roomEmail, tenant]);
+  }, [roomEmail, tenant, refreshVisibleMonth, refreshTodayPanelMonth]);
 
   // 🧠 Detecta si hay un evento activo actualmente
   useEffect(() => {
-    const active = events.find(
+    const active = todayPanelEvents.find(
       (ev) => now.isAfter(dayjs(ev.start)) && now.isBefore(dayjs(ev.end)),
     );
     setCurrentEvent(active || null);
-  }, [now, events]);
+  }, [now, todayPanelEvents]);
 
 
   // 📝 Manejo del formulario
@@ -121,8 +229,8 @@ export default function RoomScreen() {
 
     setForm({
       subject: "",
-      start: defaultStart.toISOString(),
-      end: defaultEnd.toISOString(),
+      start: defaultStart.format(LOCAL_DATETIME_FORMAT),
+      end: defaultEnd.format(LOCAL_DATETIME_FORMAT),
     });
     setShowModal(true);
   };
@@ -244,13 +352,31 @@ export default function RoomScreen() {
 
       console.log("📨 Respuesta del servidor:", result);
 
-      Alert.alert("Éxito", "Reserva creada correctamente ✅");
+      showSuccessToast("Evento creado");
       setShowModal(false);
       setForm({ subject: "", start: "", end: "" });
-      loadEvents();
+      const reservationMonth = dayjs(form.start || now).startOf("month");
+      await loadMonthEvents(reservationMonth, {
+        showLoader: false,
+        useCache: false,
+        updateVisible: true,
+      });
+      if (monthKey(reservationMonth) === monthKey(now)) {
+        await loadMonthEvents(reservationMonth, {
+          showLoader: false,
+          useCache: false,
+          updateVisible: false,
+          onLoaded: setTodayPanelEvents,
+        });
+      }
+      preloadNeighborMonths(reservationMonth);
     } catch (e: any) {
       console.error(e);
-      Alert.alert("Error", "No se pudo crear la reserva.");
+      const msg =
+        typeof e?.message === "string" && e.message.length > 0
+          ? e.message
+          : "No se pudo crear la reserva.";
+      Alert.alert("Error", msg);
     }
   };
 
@@ -269,7 +395,7 @@ export default function RoomScreen() {
     <RoomLayout background={roomBackground}>
       <DayPanel
         roomName={roomName}
-        events={events}
+        events={todayPanelEvents}
         currentEvent={currentEvent}
         now={now}
         theme={theme}
@@ -282,6 +408,12 @@ export default function RoomScreen() {
         onLogoPress={() => router.replace("/")}
         onDayPress={(date) => openReservationModal(date)}
         isRoomReservedNow={Boolean(currentEvent)}
+        onViewMonthChange={(date) => {
+          const normalized = date.startOf("month");
+          if (monthKey(normalized) === monthKey(visibleMonth)) return;
+          loadMonthEvents(normalized, { showLoader: false, useCache: true, updateVisible: true });
+          preloadNeighborMonths(normalized);
+        }}
       />
 
       {/* MODAL */}
@@ -298,6 +430,7 @@ export default function RoomScreen() {
         validationMessage={validation.message}
         validationIsError={validation.isError}
       />
+      <SuccessToastHost />
     </RoomLayout>
   );
 }

@@ -10,6 +10,7 @@ export const roomsConfig = {
             primary: "#40CCA1",
             secondary: "#F7D159",
             text: "#FFFFFF",
+            occupiedColor: "#F7D159",
         },
         background: require("@assets/backgrounds/PlaySummit-21.jpg"),
     },
@@ -24,6 +25,7 @@ export const roomsConfig = {
             primary: "#40CCA1",
             secondary: "#F7D159",
             text: "#FFFFFF",
+            occupiedColor: "#F7D159",
         },
         background: require("@assets/backgrounds/PlaySummit-7.jpg"),
     },
@@ -39,7 +41,7 @@ export const roomsConfig = {
             secondary: "#127EFF",
             third: "#93D50A",
             text: "#FFFFFF",
-            modalButton: "#127EFF"
+            occupiedColor: "#FFD008",
         },
         background: require("@assets/backgrounds/SantaClara-1.jpg"),
     },
@@ -55,7 +57,7 @@ export const roomsConfig = {
             secondary: "#127EFF",
             third: "#93D50A",
             text: "#FFFFFF",
-            modalButton: "#127EFF"
+            occupiedColor: "#FFD008",
         },
         background: require("@assets/backgrounds/SantaClara-2.jpg"),
     },

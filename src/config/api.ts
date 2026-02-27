@@ -4,11 +4,13 @@
 export const PROD_API_URL = "https://rooms.reinventedschools.com/api";
 
 // 🏠 URL Local (Tu PC)
-export const LOCAL_API_URL = "http://localhost:5130/api";
+// Para tablet/Expo Go en la misma red: usa la IP de tu PC (192.168.70.100)
+// Para navegador: puedes usar localhost si prefieres
+export const LOCAL_API_URL = "http://192.168.70.100:5130/api";
 
 // 🎛️ CONFIGURACIÓN DE ENTORNO
 // Pon esto en 'true' SOLO si tienes el backend .NET corriendo en tu propia PC.
-// Pon esto en 'false' para usar siempre el servidor de Contabo (recomendado para pruebas ahora).
+// Pon esto en 'false' para producción (usa el servidor de Contabo).
 const USE_LOCAL_BACKEND = false;
 
 // Helper para obtener la URL base

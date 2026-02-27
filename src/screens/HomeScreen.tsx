@@ -25,7 +25,13 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#000", padding: 30 },
+    container: {
+        flex: 1,
+        width: "100%",
+        minWidth: "100%",
+        backgroundColor: "#000",
+        padding: 30,
+    },
     title: { color: "#fff", fontSize: 28, marginBottom: 24 },
     card: {
         backgroundColor: "#222",

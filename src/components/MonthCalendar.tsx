@@ -24,10 +24,12 @@ interface Props {
         text: string;
         logo: any;
         third?: string;
+        occupiedColor?: string;
     };
     onLogoPress?: () => void;
     onDayPress?: (date: dayjs.Dayjs) => void;
     isRoomReservedNow?: boolean;
+    onViewMonthChange?: (date: dayjs.Dayjs) => void;
 }
 
 export default function MonthCalendar({
@@ -37,12 +39,37 @@ export default function MonthCalendar({
     onLogoPress,
     onDayPress,
     isRoomReservedNow = false,
+    onViewMonthChange,
 }: Props) {
     const { height, width } = useWindowDimensions();
     const isPortrait = height > width;
+    const isMobile = width < 600;
+
+    const calendarWidth = width * (isMobile ? 0.62 : 0.73);
+    const r = {
+        logoSize: { width: calendarWidth * 0.225, height: calendarWidth * 0.09 },
+        containerPadding: Math.round(width * (isMobile ? 0.02 : 0.025)),
+        radius: Math.round(width * 0.025),
+        topRowMargin: Math.round(width * 0.02),
+        yearGap: Math.round(width * 0.02),
+        navPadding: Math.round(width * 0.02),
+        yearFontSize: Math.max(9, Math.min(27, width * 0.055)),
+        navFontSize: Math.max(8, Math.min(14, width * 0.028)),
+        monthChipFontSize: Math.max(9, Math.min(13, width * 0.025)),
+        monthChipPadding: Math.round(width * (isMobile ? 0.0075 : 0.01)),
+        monthChipMargin: Math.round(width * 0.005),
+        monthRowMargin: Math.round(width * 0.02),
+        dividerMargin: Math.round(width * 0.02),
+        dayHeaderFontSize: Math.max(10, Math.min(14, width * 0.03)),
+        dayNumFontSize: Math.max(14, Math.min(28, width * 0.055)),
+        daysHeaderMargin: Math.round(width * 0.02),
+        cellPadding: Math.round(width * 0.003),
+        eventDotSize: Math.max(3, Math.min(5, width * 0.012)),
+    };
 
     const [viewDate, setViewDate] = useState(now);
-    const accentGreen = isRoomReservedNow ? "#F7D159" : (theme.third || "#40CCA1");
+    const occupiedColor = theme.occupiedColor ?? "#F7D159";
+    const accentGreen = isRoomReservedNow ? occupiedColor : (theme.third || "#40CCA1");
 
     const year = viewDate.year();
     const month = viewDate.month();
@@ -51,6 +78,10 @@ export default function MonthCalendar({
 
     const prevYear = () => setViewDate((d) => d.subtract(1, "year"));
     const nextYear = () => setViewDate((d) => d.add(1, "year"));
+
+    React.useEffect(() => {
+        onViewMonthChange?.(viewDate.startOf("month"));
+    }, [viewDate, onViewMonthChange]);
 
     const daysWithEvents = new Set(
         events.map((e) => dayjs(e.start).format("YYYY-MM-DD"))
@@ -81,38 +112,38 @@ export default function MonthCalendar({
             style={[
                 styles.container,
                 isPortrait && styles.containerPortrait,
+                { padding: r.containerPadding, borderRadius: r.radius, borderTopLeftRadius: r.radius, borderBottomLeftRadius: r.radius },
             ]}
         >
-            <View style={styles.topRow}>
+            <View style={[styles.topRow, { marginBottom: r.topRowMargin }]}>
                 <TouchableOpacity
                     onPress={onLogoPress}
                     style={styles.logoContainer}
                     disabled={!onLogoPress}
                 >
-                    <Image source={theme.logo} style={styles.logo} />
+                    <Image source={theme.logo} style={[styles.logo, r.logoSize]} />
                 </TouchableOpacity>
 
-                <View style={styles.yearRow}>
-                    <TouchableOpacity onPress={prevYear} style={styles.navButton}>
-                        <Text style={styles.navText}>‹</Text>
+                <View style={[styles.yearRow, { gap: r.yearGap }]}>
+                    <TouchableOpacity onPress={prevYear} style={[styles.navButton, { padding: r.navPadding }]}>
+                        <Text style={[styles.navText, { fontSize: r.navFontSize }]}>‹</Text>
                     </TouchableOpacity>
-                    <Text style={styles.yearText}>{year}</Text>
-                    <TouchableOpacity onPress={nextYear} style={styles.navButton}>
-                        <Text style={styles.navText}>›</Text>
+                    <Text style={[styles.yearText, { fontSize: r.yearFontSize }]}>{year}</Text>
+                    <TouchableOpacity onPress={nextYear} style={[styles.navButton, { padding: r.navPadding }]}>
+                        <Text style={[styles.navText, { fontSize: r.navFontSize }]}>›</Text>
                     </TouchableOpacity>
                 </View>
             </View>
 
-            <View style={styles.monthsRow}>
+            <View style={[styles.monthsRow, { marginBottom: r.monthRowMargin }]}>
                 {MONTHS_ES.map((m, i) => (
                     <TouchableOpacity
                         key={m}
-                        onPress={() =>
-                            setViewDate((d) => d.month(i))
-                        }
+                        onPress={() => setViewDate((d) => d.month(i))}
                         style={[
                             styles.monthChip,
                             styles.monthChipBorder,
+                            { paddingVertical: r.monthChipPadding, marginHorizontal: r.monthChipMargin, borderRadius: r.cellPadding * 2 },
                             i === month && styles.monthChipActive,
                             i === month && { backgroundColor: accentGreen, borderColor: "transparent" },
                         ]}
@@ -120,6 +151,7 @@ export default function MonthCalendar({
                         <Text
                             style={[
                                 styles.monthChipText,
+                                { fontSize: r.monthChipFontSize },
                                 i === month && styles.monthChipTextActive,
                                 i === month && { fontWeight: "bold" },
                             ]}
@@ -130,13 +162,13 @@ export default function MonthCalendar({
                 ))}
             </View>
 
-            <View style={styles.monthsDivider} />
+            <View style={[styles.monthsDivider, { marginTop: r.dividerMargin, marginBottom: r.dividerMargin }]} />
 
-            <View style={styles.daysHeader}>
+            <View style={[styles.daysHeader, { marginBottom: r.daysHeaderMargin }]}>
                 {DAYS_HEADER.map((d) => (
                     <Text
                         key={d}
-                        style={styles.dayHeaderText}
+                        style={[styles.dayHeaderText, { fontSize: r.dayHeaderFontSize }]}
                     >
                         {d}
                     </Text>
@@ -147,7 +179,7 @@ export default function MonthCalendar({
                 {gridDates.map((date) => (
                     <View
                         key={date.format("YYYY-MM-DD")}
-                        style={[styles.cell, { height: `${100 / weeksCount}%` }]}
+                        style={[styles.cell, { height: `${100 / weeksCount}%`, padding: r.cellPadding }]}
                     >
                         <TouchableOpacity
                             activeOpacity={0.8}
@@ -160,6 +192,7 @@ export default function MonthCalendar({
                             <Text
                                 style={[
                                     styles.dayNum,
+                                    { fontSize: r.dayNumFontSize },
                                     isToday(date) && styles.dayNumToday,
                                     date.month() !== month && { opacity: 0.4 },
                                 ]}
@@ -170,7 +203,7 @@ export default function MonthCalendar({
                                 <View
                                     style={[
                                         styles.eventDot,
-                                        { backgroundColor: accentGreen },
+                                        { backgroundColor: accentGreen, width: r.eventDotSize, height: r.eventDotSize, borderRadius: r.eventDotSize / 2, bottom: r.cellPadding },
                                     ]}
                                 />
                             )}
@@ -186,10 +219,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1.2,
         minWidth: 0,
-        padding: 20,
         backgroundColor: "#FFFFFF",
-        borderTopLeftRadius: 16,
-        borderBottomLeftRadius: 16,
     },
     containerPortrait: {
         borderTopLeftRadius: 0,
@@ -199,32 +229,24 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        marginBottom: 8,
     },
     yearRow: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "flex-end",
-        gap: 10,
     },
     logoContainer: {
         alignSelf: "flex-start",
     },
     logo: {
-        width: 180,
-        height: 72,
         resizeMode: "contain",
     },
-    navButton: {
-        padding: 8,
-    },
+    navButton: {},
     navText: {
-        fontSize: 28,
         color: "#111111",
         fontWeight: "300",
     },
     yearText: {
-        fontSize: 54,
         color: "#111111",
         fontWeight: "bold",
     },
@@ -233,7 +255,6 @@ const styles = StyleSheet.create({
         flexWrap: "nowrap",
         justifyContent: "space-between",
         alignItems: "stretch",
-        marginBottom: 10,
     },
     monthChipBorder: {
         borderWidth: 1,
@@ -242,15 +263,11 @@ const styles = StyleSheet.create({
     monthChip: {
         flex: 1,
         minWidth: 0,
-        paddingVertical: 10,
         paddingHorizontal: 0,
-        borderRadius: 8,
         alignItems: "center",
         justifyContent: "center",
-        marginHorizontal: 2,
     },
     monthChipText: {
-        fontSize: 11,
         color: "#222222",
     },
     monthChipTextActive: {
@@ -262,16 +279,12 @@ const styles = StyleSheet.create({
     monthsDivider: {
         height: 1,
         backgroundColor: "#DDDDDD",
-        marginTop: 12,
-        marginBottom: 14,
     },
     daysHeader: {
         flexDirection: "row",
-        marginBottom: 8,
     },
     dayHeaderText: {
         flex: 1,
-        fontSize: 12,
         fontWeight: "bold",
         textAlign: "center",
         color: "#111111",
@@ -286,7 +299,6 @@ const styles = StyleSheet.create({
         width: "20%",
         alignItems: "center",
         justifyContent: "center",
-        padding: 1,
     },
     dayCell: {
         width: "88%",
@@ -296,7 +308,6 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     dayNum: {
-        fontSize: 26,
         fontWeight: "500",
         color: "#222222",
     },
@@ -306,9 +317,5 @@ const styles = StyleSheet.create({
     },
     eventDot: {
         position: "absolute",
-        bottom: 2,
-        width: 4,
-        height: 4,
-        borderRadius: 2,
     },
 });

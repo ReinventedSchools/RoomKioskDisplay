@@ -24,6 +24,7 @@ interface Props {
         text: string;
         logo: any;
         third?: string;
+        occupiedColor?: string;
     };
     onCreateReservation: () => void;
 }
@@ -37,15 +38,32 @@ export default function DayPanel({
     onCreateReservation,
 }: Props) {
     const { height, width } = useWindowDimensions();
-    const panelWidth = Math.min(Math.max(width * 0.27, 280), 360);
+    const isMobile = width < 600;
+    const panelWidth = isMobile
+        ? Math.max(120, Math.min(180, width * 0.38))
+        : Math.min(Math.max(width * 0.27, 280), 360);
     const panelTopPadding = Math.max(24, Math.min(48, height * 0.06));
-    const daySize = Math.max(130, Math.min(200, height * 0.26));
-    const dayNumberMarginBottom = Math.max(12, Math.min(24, height * 0.03));
+    const daySize = Math.max(90, Math.min(200, Math.min(panelWidth * 0.55, height * 0.26)));
+    const dayNumberMarginBottom = Math.max(10, Math.min(24, panelWidth * 0.04));
     const daySectionPaddingBottom = Math.max(14, Math.min(30, height * 0.035));
-    const roomNameSize = Math.max(28, Math.min(44, width * 0.038));
-    const infoTextSize = Math.max(22, Math.min(30, width * 0.026));
-    const buttonTextSize = Math.max(18, Math.min(24, width * 0.02));
-    const plusSize = Math.max(30, Math.min(38, width * 0.03));
+    const roomNameSize = Math.max(22, Math.min(44, panelWidth * 0.1));
+    const infoTextSize = Math.max(18, Math.min(32, panelWidth * 0.075));
+    const dayOfWeekSize = Math.max(16, Math.min(28, panelWidth * 0.08));
+    const buttonTextSize = Math.max(16, Math.min(24, panelWidth * 0.06));
+    const plusSize = Math.max(28, Math.min(42, panelWidth * 0.1));
+
+    const r = {
+        paddingH: Math.round(panelWidth * 0.04),
+        paddingB: Math.round(panelWidth * 0.055),
+        radius: Math.round(panelWidth * 0.045),
+        marginSm: Math.round(panelWidth * 0.015),
+        marginMd: Math.round(panelWidth * 0.025),
+        sectionMinH: Math.round(panelWidth * 0.4),
+        eventPadding: Math.round(panelWidth * 0.04),
+        eventMargin: Math.round(panelWidth * 0.025),
+        createPadding: Math.round(panelWidth * 0.045),
+        plusStroke: Math.round(plusSize * 0.08),
+    };
 
     const dayNum = now.format("D");
     const monthName = now.format("MMMM").toUpperCase();
@@ -56,11 +74,12 @@ export default function DayPanel({
         .sort((a, b) => dayjs(a.start).valueOf() - dayjs(b.start).valueOf());
 
     const accentGreen = theme.third || BRAND_GREEN;
+    const occupiedColor = theme.occupiedColor ?? "#F7D159";
     const isRoomReservedNow = Boolean(currentEvent);
-    const panelColor = isRoomReservedNow ? "#F7D159" : accentGreen;
+    const panelColor = isRoomReservedNow ? occupiedColor : accentGreen;
     const panelTextColor = "#FFFFFF";
     const activeEventBg = isRoomReservedNow ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.5)";
-    const plusStrokeColor = isRoomReservedNow ? "#F7D159" : accentGreen;
+    const plusStrokeColor = isRoomReservedNow ? occupiedColor : accentGreen;
 
     return (
         <View
@@ -70,12 +89,17 @@ export default function DayPanel({
                     width: panelWidth,
                     maxWidth: panelWidth,
                     paddingTop: panelTopPadding,
+                    paddingHorizontal: r.paddingH,
+                    paddingBottom: r.paddingB,
+                    borderRadius: r.radius,
+                    borderTopRightRadius: r.radius,
+                    borderBottomRightRadius: r.radius,
                     backgroundColor: panelColor,
                 },
             ]}
         >
             <Text
-                style={[styles.roomName, { color: panelTextColor, fontSize: roomNameSize }]}
+                style={[styles.roomName, { color: panelTextColor, fontSize: roomNameSize, marginBottom: r.marginSm }]}
                 numberOfLines={1}
                 adjustsFontSizeToFit
             >
@@ -91,7 +115,7 @@ export default function DayPanel({
                     },
                 ]}
             >
-                <Text style={[styles.dayOfWeek, { color: panelTextColor }]}>{dayOfWeek}</Text>
+                <Text style={[styles.dayOfWeek, { color: panelTextColor, fontSize: dayOfWeekSize, marginBottom: r.marginSm }]}>{dayOfWeek}</Text>
                 <Text
                     style={[
                         styles.dayNumber,
@@ -105,19 +129,19 @@ export default function DayPanel({
                 >
                     {dayNum}
                 </Text>
-                <Text style={[styles.dayMonth, { color: panelTextColor, fontSize: infoTextSize }]}>
+                <Text style={[styles.dayMonth, { color: panelTextColor, fontSize: infoTextSize, marginTop: r.marginSm }]}>
                     {monthName}
                 </Text>
             </View>
 
-            <View style={styles.eventsSection}>
-                <Text style={[styles.sectionTitle, { color: panelTextColor, fontSize: infoTextSize }]}>
+            <View style={[styles.eventsSection, { minHeight: r.sectionMinH }]}>
+                <Text style={[styles.sectionTitle, { color: panelTextColor, fontSize: infoTextSize, marginBottom: r.marginMd }]}>
                     Reservas del día
                 </Text>
                 <ScrollView
                     style={styles.scroll}
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.scrollContent}
+                    contentContainerStyle={[styles.scrollContent, { paddingBottom: r.paddingH }]}
                 >
                     {todayEvents.length > 0 ? (
                         todayEvents.map((ev, idx) => {
@@ -130,10 +154,8 @@ export default function DayPanel({
                                     key={idx}
                                     style={[
                                         styles.eventItem,
-                                        isActive && {
-                                            backgroundColor: activeEventBg,
-                                            borderRadius: 8,
-                                        },
+                                        { padding: r.eventPadding, marginBottom: r.eventMargin, borderRadius: r.marginSm },
+                                        isActive && { backgroundColor: activeEventBg },
                                     ]}
                                 >
                                     <Text
@@ -156,6 +178,7 @@ export default function DayPanel({
                                                 color: panelTextColor,
                                                 opacity: isPast ? 0.4 : isActive ? 0.6 : 0.9,
                                                 fontSize: infoTextSize,
+                                                marginTop: r.marginSm,
                                             },
                                         ]}
                                     >
@@ -166,7 +189,7 @@ export default function DayPanel({
                             );
                         })
                     ) : (
-                        <Text style={[styles.emptyText, { color: panelTextColor }]}>
+                        <Text style={[styles.emptyText, { color: panelTextColor, fontSize: Math.max(12, infoTextSize * 0.5) }]}>
                             Sin reservas
                         </Text>
                     )}
@@ -174,7 +197,7 @@ export default function DayPanel({
             </View>
 
             <TouchableOpacity
-                style={[styles.createButton, { borderColor: panelTextColor }]}
+                style={[styles.createButton, { borderColor: panelTextColor, paddingVertical: r.createPadding }]}
                 onPress={onCreateReservation}
             >
                 <Text style={[styles.createButtonText, { color: panelTextColor, fontSize: buttonTextSize }]}>
@@ -191,8 +214,8 @@ export default function DayPanel({
                         },
                     ]}
                 >
-                    <View style={[styles.plusHorizontal, { backgroundColor: plusStrokeColor }]} />
-                    <View style={[styles.plusVertical, { backgroundColor: plusStrokeColor }]} />
+                    <View style={[styles.plusHorizontal, { width: Math.round(plusSize * 0.5), height: r.plusStroke, backgroundColor: plusStrokeColor }]} />
+                    <View style={[styles.plusVertical, { width: r.plusStroke, height: Math.round(plusSize * 0.5), backgroundColor: plusStrokeColor }]} />
                 </View>
             </TouchableOpacity>
         </View>
@@ -204,14 +227,9 @@ const styles = StyleSheet.create({
         flexShrink: 0,
         flexGrow: 0,
         minWidth: 0,
-        paddingHorizontal: 12,
-        paddingBottom: 20,
-        borderTopRightRadius: 16,
-        borderBottomRightRadius: 16,
     },
     roomName: {
         fontWeight: "700",
-        marginBottom: 6,
         opacity: 0.9,
         textAlign: "center",
         width: "100%",
@@ -225,7 +243,6 @@ const styles = StyleSheet.create({
     dayMonth: {
         fontWeight: "600",
         textAlign: "center",
-        marginTop: 4,
     },
     dayNumber: {
         fontWeight: "bold",
@@ -235,40 +252,25 @@ const styles = StyleSheet.create({
         marginBottom: 0,
     },
     dayOfWeek: {
-        fontSize: 28,
-        marginBottom: 4,
         fontWeight: "500",
         textAlign: "center",
     },
     eventsSection: {
         flex: 1,
-        minHeight: 120,
     },
     sectionTitle: {
-        fontSize: 28,
         fontWeight: "600",
-        marginBottom: 10,
     },
     scroll: {
         flex: 1,
     },
-    scrollContent: {
-        paddingBottom: 16,
-    },
-    eventItem: {
-        padding: 12,
-        marginBottom: 8,
-    },
+    scrollContent: {},
+    eventItem: {},
     eventTitle: {
-        fontSize: 28,
         fontWeight: "600",
     },
-    eventTime: {
-        fontSize: 28,
-        marginTop: 2,
-    },
+    eventTime: {},
     emptyText: {
-        fontSize: 14,
         fontStyle: "italic",
         opacity: 0.8,
     },
@@ -276,30 +278,21 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingVertical: 16,
         borderBottomWidth: 1,
     },
     createButtonText: {
-        fontSize: 22,
         fontWeight: "600",
     },
     plusButton: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
         alignItems: "center",
         justifyContent: "center",
     },
     plusHorizontal: {
         position: "absolute",
-        width: 18,
-        height: 3,
         borderRadius: 2,
     },
     plusVertical: {
         position: "absolute",
-        width: 3,
-        height: 18,
         borderRadius: 2,
     },
 });
